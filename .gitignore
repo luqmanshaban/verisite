@@ -1,0 +1,90 @@
+# ==============================================================================
+# Go (Golang)
+# ==============================================================================
+# Compiled binaries and architectures
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+out/
+
+# Main application binaries (customizable based on your cmd/ names)
+main
+cmd/main
+
+# Test coverage artifacts
+*.out
+*.test
+c.out
+
+# Go modules dependency caching (if you vendor your dependencies)
+# vendor/
+
+# ==============================================================================
+# Next.js / Node / Frontend
+# ==============================================================================
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Build logs and diagnostics
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.eslintcache
+
+# Vercel deployment artifacts
+.vercel
+
+# Testing frameworks (Jest, Cypress, etc.)
+coverage/
+.nyc_output/
+.cypress-cache/
+
+# ==============================================================================
+# Environment Variables & Secrets (CRITICAL)
+# ==============================================================================
+# Local environment files containing sensitive credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Go specific environment configs (if using godotenv)
+.env.*.local
+
+# Actual template files SHOULD be tracked, so we explicitly allow them:
+!.env.example
+!.env.template
+
+# ==============================================================================
+# OS & IDE Specific
+# ==============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# JetBrains (GoLand, WebStorm, etc.)
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+# Exception: If you share team launch configs/settings, uncomment the line below:
+# !.vscode/settings.json
