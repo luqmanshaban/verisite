@@ -30,6 +30,12 @@ func (s *Server) Routes() http.Handler {
 
 	mux.Handle("/", s.internalKeyMiddleware(protected))
 
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status":"up"})
+	})
+
 	return mux
 }
 
