@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next"
 
 // Configure your Google fonts
 const spaceGrotesk = Space_Grotesk({
@@ -22,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Verisite — Security scanner for vibe-coded apps",
+  title: "Verisite | Security scanner for vibe-coded apps",
   description:
     "Paste your URL. We check what a hacker checks in the first 10 minutes. Plain English report, no jargon.",
 };
@@ -37,6 +38,7 @@ export default function RootLayout({
       lang="en"
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
+      <Analytics />
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
