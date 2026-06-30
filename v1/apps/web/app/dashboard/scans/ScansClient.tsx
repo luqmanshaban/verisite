@@ -59,7 +59,7 @@ export default function ScansClient({ scans }: { scans: ScanItem[] }) {
               }}
               onClick={() =>
                 scan.status === "completed" &&
-                router.push(`/report/${scan.scanId}`)
+                router.push(`/dashboard/scans/${scan.scanId}`)
               }
             >
               <span style={{ ...styles.cell, flex: 2, fontWeight: 500 }}>

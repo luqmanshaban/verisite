@@ -60,10 +60,11 @@ export default function SidebarClient({ user }: Props) {
         {!isPro && (
           <div style={styles.upgradeCard}>
             <p style={styles.upgradeTitle}>Free plan</p>
-            <p style={styles.upgradeDesc}>3 scans/day · 1 domain</p>
+            <p style={styles.upgradeDesc}>10 scans/day · 1 domain</p>
             <button style={styles.upgradeBtn}>
               Upgrade → $9/mo
             </button>
+            <p className="text-green-500 italic text-xs underline text-center">coming soon</p>
           </div>
         )}
 

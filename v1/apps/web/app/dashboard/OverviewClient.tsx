@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import VerifyDomainModal from "./VerifyDomainModal";
 
 interface ScanItem {
   scanId: string;
@@ -24,7 +25,7 @@ interface Props {
   todayCount: number;
 }
 
-const FREE_DAILY_LIMIT = 3;
+const FREE_DAILY_LIMIT = 10;
 
 export default function OverviewClient({ scans, user, todayCount }: Props) {
   const router = useRouter();
@@ -34,12 +35,19 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
   const isPro = user.plan === "pro";
   const remaining = Math.max(0, FREE_DAILY_LIMIT - todayCount);
   const limitReached = !isPro && remaining === 0;
+  const [verifyModal, setVerifyModal] = useState<{
+    domain: string;
+    token: string;
+    isThirdPartyHost: boolean;
+  } | null>(null);
+  
+  const [pendingUrl, setPendingUrl] = useState("");
 
   const completedScans = scans.filter((s) => s.status === "completed");
   const avgScore = completedScans.length
     ? Math.round(
         completedScans.reduce((a, b) => a + (b.score ?? 0), 0) /
-          completedScans.length
+          completedScans.length,
       )
     : null;
 
@@ -51,11 +59,22 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
     }
   }
 
+  function handleVerified() {
+    setVerifyModal(null);
+    setUrl(pendingUrl);
+    handleScan();
+  }
+
   async function handleScan() {
     setError("");
     const trimmed = url.trim();
-    if (!trimmed) { setError("Enter a URL."); return; }
-    const withProtocol = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
+    if (!trimmed) {
+      setError("Enter a URL.");
+      return;
+    }
+    const withProtocol = trimmed.startsWith("http")
+      ? trimmed
+      : `https://${trimmed}`;
     const domain = extractDomain(withProtocol);
     setLoading(true);
     try {
@@ -66,6 +85,16 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data.error === "domain_not_verified") {
+          setPendingUrl(withProtocol);
+          setVerifyModal({
+            domain: data.domain,
+            token: data.token,
+            isThirdPartyHost: data.isThirdPartyHost,
+          });
+          setLoading(false);
+          return;
+        }
         if (data.error === "daily_limit_reached") {
           setError("You've used all 3 free scans today. Resets at midnight.");
         } else if (data.error === "domain_limit_reached") {
@@ -76,7 +105,9 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
         setLoading(false);
         return;
       }
-      router.push(`/report/${data.scanId}`);
+      setTimeout(() => {
+        router.push(`/dashboard/scans/${data.scanId}`);
+      }, 3000);
     } catch {
       setError("Something went wrong. Try again.");
       setLoading(false);
@@ -93,7 +124,8 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
   const formatDate = (iso: string | null) => {
     if (!iso) return "—";
     return new Date(iso).toLocaleDateString("en-GB", {
-      day: "numeric", month: "short",
+      day: "numeric",
+      month: "short",
     });
   };
 
@@ -125,10 +157,13 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
           value={avgScore !== null ? `${avgScore}` : "—"}
           sub="completed scans"
           valueColor={
-            avgScore === null ? undefined
-            : avgScore >= 75 ? "var(--safe)"
-            : avgScore >= 45 ? "var(--caution)"
-            : "var(--alert)"
+            avgScore === null
+              ? undefined
+              : avgScore >= 75
+                ? "var(--safe)"
+                : avgScore >= 45
+                  ? "var(--caution)"
+                  : "var(--alert)"
           }
         />
         <StatCard
@@ -141,11 +176,13 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
       {/* Scan input */}
       <div style={styles.section}>
         <p style={styles.sectionLabel}>NEW SCAN</p>
-        <div style={{
-          ...styles.inputRow,
-          opacity: limitReached ? 0.5 : 1,
-          pointerEvents: limitReached ? "none" : "auto",
-        }}>
+        <div
+          style={{
+            ...styles.inputRow,
+            opacity: limitReached ? 0.5 : 1,
+            pointerEvents: limitReached ? "none" : "auto",
+          }}
+        >
           <input
             style={styles.input}
             type="text"
@@ -171,10 +208,7 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
         <div style={styles.sectionHeader}>
           <p style={styles.sectionLabel}>RECENT SCANS</p>
           {scans.length > 0 && (
-            <Link
-              style={styles.viewAllBtn}
-              href="/dashboard/scans"
-            >
+            <Link style={styles.viewAllBtn} href="/dashboard/scans">
               View all →
             </Link>
           )}
@@ -197,17 +231,19 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
                 }}
                 onClick={() =>
                   scan.status === "completed" &&
-                  router.push(`/report/${scan.scanId}`)
+                  router.push(`/dashboard/scans/${scan.scanId}`)
                 }
               >
                 <div style={styles.scanLeft}>
-                  <div style={{
-                    ...styles.gradeBox,
-                    color: gradeColor(scan.grade),
-                    borderColor: scan.grade
-                      ? gradeColor(scan.grade)
-                      : "var(--border)",
-                  }}>
+                  <div
+                    style={{
+                      ...styles.gradeBox,
+                      color: gradeColor(scan.grade),
+                      borderColor: scan.grade
+                        ? gradeColor(scan.grade)
+                        : "var(--border)",
+                    }}
+                  >
                     {scan.grade ?? "—"}
                   </div>
                   <div>
@@ -219,17 +255,23 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
                   {scan.score != null && (
                     <span style={styles.scanScore}>{scan.score}/100</span>
                   )}
-                  <span style={{
-                    ...styles.statusPill,
-                    background:
-                      scan.status === "completed" ? "#D4EDDA"
-                      : scan.status === "failed" ? "#F8D7DA"
-                      : "#FFF3CD",
-                    color:
-                      scan.status === "completed" ? "#155724"
-                      : scan.status === "failed" ? "#721C24"
-                      : "#856404",
-                  }}>
+                  <span
+                    style={{
+                      ...styles.statusPill,
+                      background:
+                        scan.status === "completed"
+                          ? "#D4EDDA"
+                          : scan.status === "failed"
+                            ? "#F8D7DA"
+                            : "#FFF3CD",
+                      color:
+                        scan.status === "completed"
+                          ? "#155724"
+                          : scan.status === "failed"
+                            ? "#721C24"
+                            : "#856404",
+                    }}
+                  >
                     {scan.status}
                   </span>
                 </div>
@@ -238,6 +280,16 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
           </div>
         )}
       </div>
+
+      {verifyModal && (
+        <VerifyDomainModal
+          domain={verifyModal.domain}
+          token={verifyModal.token}
+          isThirdPartyHost={verifyModal.isThirdPartyHost}
+          onVerified={handleVerified}
+          onCancel={() => setVerifyModal(null)}
+        />
+      )}
     </div>
   );
 }

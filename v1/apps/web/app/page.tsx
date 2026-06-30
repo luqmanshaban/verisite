@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function Home() {
   const router = useRouter();
@@ -24,12 +25,12 @@ export default function Home() {
       setError("Enter a URL to scan.");
       return;
     }
-
+  
     const withProtocol = trimmed.startsWith("http")
       ? trimmed
       : `https://${trimmed}`;
     const domain = extractDomain(withProtocol);
-
+  
     setLoading(true);
     try {
       const res = await fetch("/api/scans", {
@@ -37,12 +38,23 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: withProtocol, domain }),
       });
-
-      if (!res.ok) throw new Error("Failed to start scan.");
+  
       const data = await res.json();
+  
+      if (!res.ok) {
+        if (res.status === 429) {
+          toast.error("You've used all 3 free scans today. Sign in for more, or come back tomorrow.");
+        } else {
+          toast.error(data.message ?? "Failed to start scan.");
+        }
+        setLoading(false);
+        return;
+      }
+  
+      toast.success("Scan started successfully.");
       router.push(`/report/${data.scanId}`);
     } catch (e) {
-      setError("Something went wrong. Try again.");
+      toast.error("Something went wrong. Try again.");
       setLoading(false);
     }
   }
@@ -51,9 +63,16 @@ export default function Home() {
     <main style={styles.main}>
       <nav style={styles.nav}>
         <span style={styles.logo}>VERISITE</span>
-        <span style={{ ...styles.mono, color: "var(--muted)", fontSize: "12px" }}>
-          beta
-        </span>
+        <div style={styles.navRight}>
+          <span
+            style={{ ...styles.mono, color: "var(--muted)", fontSize: "12px" }}
+          >
+            beta
+          </span>
+          <a href="/login" style={styles.signInLink}>
+            Sign in
+          </a>
+        </div>
       </nav>
 
       <section style={styles.hero}>
@@ -63,13 +82,14 @@ export default function Home() {
         </div>
 
         <h1 style={styles.headline}>
-          You shipped it.<br />
+          You shipped it.
+          <br />
           But is it safe?
         </h1>
 
         <p style={styles.subtext}>
-          Paste your URL. We run the same checks an attacker runs in the
-          first 10 minutes — and explain every finding in plain English.
+          Paste your URL. We run the same checks an attacker runs in the first
+          10 minutes — and explain every finding in plain English.
         </p>
 
         <div style={styles.inputRow}>
@@ -102,7 +122,15 @@ export default function Home() {
       </section>
 
       <section style={styles.checks}>
-        <p style={{ ...styles.mono, fontSize: "11px", color: "var(--muted)", marginBottom: "16px", letterSpacing: "0.08em" }}>
+        <p
+          style={{
+            ...styles.mono,
+            fontSize: "11px",
+            color: "var(--muted)",
+            marginBottom: "16px",
+            letterSpacing: "0.08em",
+          }}
+        >
           WHAT WE CHECK
         </p>
         <div style={styles.checkGrid}>
@@ -144,15 +172,29 @@ const styles: Record<string, React.CSSProperties> = {
   nav: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    justifyContent: "space-between",
     padding: "24px 0",
     borderBottom: "1px solid var(--border)",
+  },
+  navRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
   },
   logo: {
     fontFamily: "'Space Grotesk', sans-serif",
     fontWeight: 700,
     fontSize: "15px",
     letterSpacing: "0.12em",
+  },
+  signInLink: {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "var(--ink)",
+    fontFamily: "'Space Grotesk', sans-serif",
+    border: "1px solid var(--border)",
+    padding: "6px 14px",
+    textDecoration: "none",
   },
   hero: {
     padding: "80px 0 64px",

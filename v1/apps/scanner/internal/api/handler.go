@@ -2,11 +2,14 @@ package api
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net"
 	"net/http"
 	"scanner/internal/models"
 	"scanner/internal/scanner"
+	"strings"
+	"time"
 )
 
 type Server struct {
@@ -33,7 +36,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status":"up"})
+		json.NewEncoder(w).Encode(map[string]string{"status": "up"})
 	})
 
 	return mux
@@ -89,6 +92,8 @@ func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
 		verified, err = verifyFile(payload.Domain, payload.Token)
 	case "dns":
 		verified, err = verifyDNS(payload.Domain, payload.Token)
+	case "meta":
+		verified, err = verifyMetaTag(payload.Domain, payload.Token)
 	default:
 		http.Error(w, "method must be 'dns' or 'file'", http.StatusBadRequest)
 		return
@@ -144,4 +149,26 @@ func verifyDNS(domain, token string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func verifyMetaTag(domain, token string) (bool, error) {
+	url := "https://" + domain
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, nil
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 100*1024)) // cap at 100kb, meta tags are in <head>
+	if err != nil {
+		return false, err
+	}
+
+	expected := `<meta name="verisite-verify" content="` + token + `"`
+	return strings.Contains(string(body), expected), nil
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
+import { Toaster } from "sonner";
 
 // Configure your Google fonts
 const spaceGrotesk = Space_Grotesk({
@@ -39,7 +40,10 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <Analytics />
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Toaster position="bottom-right"/>
+        {children}
+      </body>
     </html>
   );
 }
