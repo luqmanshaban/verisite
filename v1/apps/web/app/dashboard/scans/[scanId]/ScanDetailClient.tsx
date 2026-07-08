@@ -81,27 +81,73 @@ export default function ScanDetailClient({ scan, results }: Props) {
   }
 
   return (
-    <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.headerRow}>
-        <button style={styles.backBtn} onClick={() => router.push("/dashboard/scans")}>
-          ← Back to scans
-        </button>
-        <button
-          style={{ ...styles.pdfBtn, opacity: downloading ? 0.6 : 1 }}
-          onClick={handleDownloadPDF}
-          disabled={downloading}
-        >
-          {downloading ? "Generating..." : "↓ Download PDF"}
-        </button>
-      </div>
+    <>
+      <style>{`
+        .detail-page {
+          padding: 32px 40px;
+          max-width: 860px;
+        }
+        .detail-grade {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 72px;
+          font-weight: 600;
+          line-height: 1;
+        }
+        .detail-passed-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px 24px;
+        }
+        .detail-result-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 8px;
+          flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+          .detail-page {
+            padding: 20px 16px;
+            padding-top: 72px;
+          }
+          .detail-grade {
+            font-size: 52px;
+          }
+          .detail-passed-grid {
+            grid-template-columns: 1fr;
+          }
+          .detail-header-row {
+            flex-wrap: wrap;
+            gap: 12px;
+          }
+          .detail-pdf-btn {
+            width: 100%;
+            text-align: center;
+          }
+        }
+      `}</style>
 
-      {/* Score hero */}
-      <div style={styles.scoreSection}>
-        <div>
+      <div className="detail-page">
+        {/* Header */}
+        <div className="detail-header-row" style={styles.headerRow}>
+          <button style={styles.backBtn} onClick={() => router.push("/dashboard/scans")}>
+            ← Back to scans
+          </button>
+          <button
+            className="detail-pdf-btn"
+            style={{ ...styles.pdfBtn, opacity: downloading ? 0.6 : 1 }}
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+          >
+            {downloading ? "Generating..." : "↓ Download PDF"}
+          </button>
+        </div>
+
+        {/* Score hero */}
+        <div style={styles.scoreSection}>
           <p style={styles.domainLabel}>{scan.domain}</p>
           <div style={styles.gradeWrapper}>
-            <span style={{ ...styles.grade, color: gradeColor(scan.grade) }}>
+            <span className="detail-grade" style={{ color: gradeColor(scan.grade) }}>
               {scan.grade ?? "—"}
             </span>
             <span style={styles.scoreNumber}>
@@ -112,189 +158,78 @@ export default function ScanDetailClient({ scan, results }: Props) {
             {failed.length} issue{failed.length !== 1 ? "s" : ""} found · {passed.length} checks passed · Scanned {formatDate(scan.createdAt)}
           </p>
         </div>
-      </div>
 
-      {/* Issues */}
-      {failed.length > 0 && (
-        <div style={styles.section}>
-          <p style={styles.sectionLabel}>ISSUES TO FIX</p>
-          <div style={styles.resultList}>
-            {failed
-              .sort((a, b) => {
-                const order = { critical: 0, warning: 1, info: 2 };
-                return order[a.severity] - order[b.severity];
-              })
-              .map((r) => (
-                <div key={r.check} style={styles.resultCard}>
-                  <div style={styles.resultHeader}>
-                    <span style={{
-                      ...styles.severityTag,
-                      color: severityColor(r.severity),
-                      borderColor: severityColor(r.severity),
-                    }}>
-                      {r.severity.toUpperCase()}
-                    </span>
-                    <span style={styles.resultTitle}>{r.title}</span>
-                  </div>
-                  {r.description && <p style={styles.resultDesc}>{r.description}</p>}
-                  {r.fix && (
-                    <div style={styles.fixBox}>
-                      <span style={styles.fixLabel}>FIX →</span>
-                      <p style={{ fontSize: "13px", marginTop: "4px" }}>{r.fix}</p>
+        {/* Issues */}
+        {failed.length > 0 && (
+          <div style={styles.section}>
+            <p style={styles.sectionLabel}>ISSUES TO FIX</p>
+            <div style={styles.resultList}>
+              {failed
+                .sort((a, b) => {
+                  const order = { critical: 0, warning: 1, info: 2 };
+                  return order[a.severity] - order[b.severity];
+                })
+                .map((r) => (
+                  <div key={r.check} style={styles.resultCard}>
+                    <div className="detail-result-header">
+                      <span style={{
+                        ...styles.severityTag,
+                        color: severityColor(r.severity),
+                        borderColor: severityColor(r.severity),
+                      }}>
+                        {r.severity.toUpperCase()}
+                      </span>
+                      <span style={styles.resultTitle}>{r.title}</span>
                     </div>
-                  )}
+                    {r.description && <p style={styles.resultDesc}>{r.description}</p>}
+                    {r.fix && (
+                      <div style={styles.fixBox}>
+                        <span style={styles.fixLabel}>FIX →</span>
+                        <p style={{ fontSize: "13px", marginTop: "4px" }}>{r.fix}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Passed */}
+        {passed.length > 0 && (
+          <div style={styles.section}>
+            <p style={styles.sectionLabel}>PASSING CHECKS</p>
+            <div className="detail-passed-grid">
+              {passed.map((r) => (
+                <div key={r.check} style={styles.passedItem}>
+                  <span style={{ color: "var(--safe)", fontWeight: 700 }}>✓</span>
+                  <span style={{ fontSize: "13px" }}>{r.title}</span>
                 </div>
               ))}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Passed */}
-      {passed.length > 0 && (
-        <div style={styles.section}>
-          <p style={styles.sectionLabel}>PASSING CHECKS</p>
-          <div style={styles.passedGrid}>
-            {passed.map((r) => (
-              <div key={r.check} style={styles.passedItem}>
-                <span style={{ color: "var(--safe)", fontWeight: 700 }}>✓</span>
-                <span style={{ fontSize: "13px" }}>{r.title}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  page: {
-    padding: "32px 40px",
-    maxWidth: "860px",
-  },
-  headerRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "24px",
-  },
-  backBtn: {
-    background: "none",
-    border: "none",
-    fontSize: "13px",
-    color: "var(--muted)",
-    cursor: "pointer",
-    fontFamily: "'Space Grotesk', sans-serif",
-    padding: 0,
-  },
-  pdfBtn: {
-    padding: "9px 16px",
-    background: "var(--ink)",
-    color: "var(--paper)",
-    border: "none",
-    fontSize: "13px",
-    fontWeight: 600,
-    fontFamily: "'Space Grotesk', sans-serif",
-    cursor: "pointer",
-  },
-  scoreSection: {
-    padding: "24px 0 32px",
-    borderBottom: "1px solid var(--border)",
-    marginBottom: "32px",
-  },
-  domainLabel: {
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: "13px",
-    color: "var(--muted)",
-    marginBottom: "12px",
-  },
-  gradeWrapper: {
-    display: "flex",
-    alignItems: "baseline",
-    gap: "16px",
-  },
-  grade: {
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: "72px",
-    fontWeight: 600,
-    lineHeight: 1,
-  },
-  scoreNumber: {
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: "20px",
-    color: "var(--muted)",
-  },
-  scanMeta: {
-    fontSize: "13px",
-    color: "var(--muted)",
-    marginTop: "10px",
-  },
-  section: {
-    marginBottom: "32px",
-  },
-  sectionLabel: {
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: "11px",
-    color: "var(--muted)",
-    letterSpacing: "0.08em",
-    marginBottom: "16px",
-  },
-  resultList: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "12px",
-  },
-  resultCard: {
-    border: "1px solid var(--border)",
-    padding: "16px",
-    background: "white",
-  },
-  resultHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    marginBottom: "8px",
-  },
-  severityTag: {
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: "10px",
-    fontWeight: 600,
-    letterSpacing: "0.06em",
-    border: "1px solid",
-    padding: "2px 6px",
-    flexShrink: 0,
-  },
-  resultTitle: {
-    fontFamily: "'Space Grotesk', sans-serif",
-    fontWeight: 600,
-    fontSize: "14px",
-  },
-  resultDesc: {
-    fontSize: "13px",
-    color: "#444",
-    lineHeight: 1.6,
-    marginBottom: "12px",
-  },
-  fixBox: {
-    background: "var(--paper)",
-    border: "1px solid var(--border)",
-    padding: "10px 12px",
-    marginTop: "8px",
-  },
-  fixLabel: {
-    fontFamily: "'JetBrains Mono', monospace",
-    fontSize: "11px",
-    color: "var(--muted)",
-    letterSpacing: "0.06em",
-  },
-  passedGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "10px 24px",
-  },
-  passedItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-  },
+  headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" },
+  backBtn: { background: "none", border: "none", fontSize: "13px", color: "var(--muted)", cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif", padding: 0 },
+  pdfBtn: { padding: "9px 16px", background: "var(--ink)", color: "var(--paper)", border: "none", fontSize: "13px", fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif", cursor: "pointer" },
+  scoreSection: { padding: "24px 0 32px", borderBottom: "1px solid var(--border)", marginBottom: "32px" },
+  domainLabel: { fontFamily: "'JetBrains Mono', monospace", fontSize: "13px", color: "var(--muted)", marginBottom: "12px", wordBreak: "break-all" },
+  gradeWrapper: { display: "flex", alignItems: "baseline", gap: "16px", flexWrap: "wrap" },
+  scoreNumber: { fontFamily: "'JetBrains Mono', monospace", fontSize: "20px", color: "var(--muted)" },
+  scanMeta: { fontSize: "13px", color: "var(--muted)", marginTop: "10px" },
+  section: { marginBottom: "32px" },
+  sectionLabel: { fontFamily: "'JetBrains Mono', monospace", fontSize: "11px", color: "var(--muted)", letterSpacing: "0.08em", marginBottom: "16px" },
+  resultList: { display: "flex", flexDirection: "column" as const, gap: "12px" },
+  resultCard: { border: "1px solid var(--border)", padding: "16px", background: "white" },
+  severityTag: { fontFamily: "'JetBrains Mono', monospace", fontSize: "10px", fontWeight: 600, letterSpacing: "0.06em", border: "1px solid", padding: "2px 6px", flexShrink: 0 },
+  resultTitle: { fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "14px" },
+  resultDesc: { fontSize: "13px", color: "#444", lineHeight: 1.6, marginBottom: "12px" },
+  fixBox: { background: "var(--paper)", border: "1px solid var(--border)", padding: "10px 12px", marginTop: "8px" },
+  fixLabel: { fontFamily: "'JetBrains Mono', monospace", fontSize: "11px", color: "var(--muted)", letterSpacing: "0.06em" },
+  passedItem: { display: "flex", alignItems: "center", gap: "8px" },
 };

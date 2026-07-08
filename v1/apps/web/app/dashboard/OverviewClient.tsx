@@ -40,7 +40,6 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
     token: string;
     isThirdPartyHost: boolean;
   } | null>(null);
-  
   const [pendingUrl, setPendingUrl] = useState("");
 
   const completedScans = scans.filter((s) => s.status === "completed");
@@ -130,10 +129,60 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
   };
 
   return (
-    <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div>
+    <>
+      <style>{`
+        .overview-page {
+          padding: 32px 40px;
+          max-width: 860px;
+          /* extra top padding handled by layout on mobile */
+        }
+        .overview-stats-row {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 32px;
+        }
+        .overview-input-row {
+          display: flex;
+          border: 1.5px solid var(--ink);
+          max-width: 560px;
+        }
+        .overview-scan-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 16px;
+          background: white;
+          border: 1px solid var(--border);
+          cursor: pointer;
+        }
+        .overview-scan-domain {
+          font-size: 14px;
+          font-weight: 500;
+          font-family: 'Space Grotesk', sans-serif;
+          word-break: break-all;
+        }
+        @media (max-width: 768px) {
+          .overview-page {
+            padding: 20px 16px;
+            padding-top: 72px; /* 52px topbar + 20px breathing room */
+          }
+          .overview-stats-row {
+            flex-direction: column;
+            gap: 8px;
+          }
+          .overview-input-row {
+            max-width: 100%;
+          }
+          .overview-scan-row {
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+        }
+      `}</style>
+
+      <div className="overview-page">
+        {/* Header */}
+        <div style={styles.header}>
           <h1 style={styles.heading}>
             Good {getTimeOfDay()}, {user.name?.split(" ")[0] ?? "there"} 👋
           </h1>
@@ -143,154 +192,156 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
               : `${remaining} of ${FREE_DAILY_LIMIT} free scans remaining today.`}
           </p>
         </div>
-      </div>
 
-      {/* Stats */}
-      <div style={styles.statsRow}>
-        <StatCard
-          label="Total Scans"
-          value={String(scans.length)}
-          sub="all time"
-        />
-        <StatCard
-          label="Avg Score"
-          value={avgScore !== null ? `${avgScore}` : "—"}
-          sub="completed scans"
-          valueColor={
-            avgScore === null
-              ? undefined
-              : avgScore >= 75
-                ? "var(--safe)"
-                : avgScore >= 45
-                  ? "var(--caution)"
-                  : "var(--alert)"
-          }
-        />
-        <StatCard
-          label="Scans Today"
-          value={`${todayCount}${!isPro ? `/${FREE_DAILY_LIMIT}` : ""}`}
-          sub={isPro ? "unlimited" : `${remaining} remaining`}
-        />
-      </div>
-
-      {/* Scan input */}
-      <div style={styles.section}>
-        <p style={styles.sectionLabel}>NEW SCAN</p>
-        <div
-          style={{
-            ...styles.inputRow,
-            opacity: limitReached ? 0.5 : 1,
-            pointerEvents: limitReached ? "none" : "auto",
-          }}
-        >
-          <input
-            style={styles.input}
-            type="text"
-            placeholder="https://yourapp.com"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleScan()}
-            disabled={loading || limitReached}
+        {/* Stats */}
+        <div className="overview-stats-row">
+          <StatCard
+            label="Total Scans"
+            value={String(scans.length)}
+            sub="all time"
           />
-          <button
-            style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
-            onClick={handleScan}
-            disabled={loading || limitReached}
-          >
-            {loading ? "Starting..." : "Scan now"}
-          </button>
+          <StatCard
+            label="Avg Score"
+            value={avgScore !== null ? `${avgScore}` : "—"}
+            sub="completed scans"
+            valueColor={
+              avgScore === null
+                ? undefined
+                : avgScore >= 75
+                  ? "var(--safe)"
+                  : avgScore >= 45
+                    ? "var(--caution)"
+                    : "var(--alert)"
+            }
+          />
+          <StatCard
+            label="Scans Today"
+            value={`${todayCount}${!isPro ? `/${FREE_DAILY_LIMIT}` : ""}`}
+            sub={isPro ? "unlimited" : `${remaining} remaining`}
+          />
         </div>
-        {error && <p style={styles.errorText}>{error}</p>}
-      </div>
 
-      {/* Recent scans */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <p style={styles.sectionLabel}>RECENT SCANS</p>
-          {scans.length > 0 && (
-            <Link style={styles.viewAllBtn} href="/dashboard/scans">
-              View all →
-            </Link>
+        {/* Scan input */}
+        <div style={styles.section}>
+          <p style={styles.sectionLabel}>NEW SCAN</p>
+          <div
+            className="overview-input-row"
+            style={{
+              opacity: limitReached ? 0.5 : 1,
+              pointerEvents: limitReached ? "none" : "auto",
+            }}
+          >
+            <input
+              style={styles.input}
+              type="text"
+              placeholder="https://yourapp.com"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleScan()}
+              disabled={loading || limitReached}
+            />
+            <button
+              style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
+              onClick={handleScan}
+              disabled={loading || limitReached}
+            >
+              {loading ? "Starting..." : "Scan now"}
+            </button>
+          </div>
+          {error && <p style={styles.errorText}>{error}</p>}
+        </div>
+
+        {/* Recent scans */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>
+            <p style={styles.sectionLabel}>RECENT SCANS</p>
+            {scans.length > 0 && (
+              <Link style={styles.viewAllBtn} href="/dashboard/scans">
+                View all →
+              </Link>
+            )}
+          </div>
+
+          {scans.length === 0 ? (
+            <div style={styles.emptyState}>
+              <p style={{ fontSize: "14px", color: "var(--muted)" }}>
+                No scans yet — paste a URL above to get started.
+              </p>
+            </div>
+          ) : (
+            <div style={styles.scanList}>
+              {scans.map((scan) => (
+                <div
+                  key={scan.scanId}
+                  className="overview-scan-row"
+                  style={{
+                    cursor: scan.status === "completed" ? "pointer" : "default",
+                  }}
+                  onClick={() =>
+                    scan.status === "completed" &&
+                    router.push(`/dashboard/scans/${scan.scanId}`)
+                  }
+                >
+                  <div style={styles.scanLeft}>
+                    <div
+                      style={{
+                        ...styles.gradeBox,
+                        color: gradeColor(scan.grade),
+                        borderColor: scan.grade
+                          ? gradeColor(scan.grade)
+                          : "var(--border)",
+                      }}
+                    >
+                      {scan.grade ?? "—"}
+                    </div>
+                    <div>
+                      <p className="overview-scan-domain">{scan.domain}</p>
+                      <p style={styles.scanDate}>
+                        {formatDate(scan.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={styles.scanRight}>
+                    {scan.score != null && (
+                      <span style={styles.scanScore}>{scan.score}/100</span>
+                    )}
+                    <span
+                      style={{
+                        ...styles.statusPill,
+                        background:
+                          scan.status === "completed"
+                            ? "#D4EDDA"
+                            : scan.status === "failed"
+                              ? "#F8D7DA"
+                              : "#FFF3CD",
+                        color:
+                          scan.status === "completed"
+                            ? "#155724"
+                            : scan.status === "failed"
+                              ? "#721C24"
+                              : "#856404",
+                      }}
+                    >
+                      {scan.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
-        {scans.length === 0 ? (
-          <div style={styles.emptyState}>
-            <p style={{ fontSize: "14px", color: "var(--muted)" }}>
-              No scans yet — paste a URL above to get started.
-            </p>
-          </div>
-        ) : (
-          <div style={styles.scanList}>
-            {scans.map((scan) => (
-              <div
-                key={scan.scanId}
-                style={{
-                  ...styles.scanRow,
-                  cursor: scan.status === "completed" ? "pointer" : "default",
-                }}
-                onClick={() =>
-                  scan.status === "completed" &&
-                  router.push(`/dashboard/scans/${scan.scanId}`)
-                }
-              >
-                <div style={styles.scanLeft}>
-                  <div
-                    style={{
-                      ...styles.gradeBox,
-                      color: gradeColor(scan.grade),
-                      borderColor: scan.grade
-                        ? gradeColor(scan.grade)
-                        : "var(--border)",
-                    }}
-                  >
-                    {scan.grade ?? "—"}
-                  </div>
-                  <div>
-                    <p style={styles.scanDomain}>{scan.domain}</p>
-                    <p style={styles.scanDate}>{formatDate(scan.createdAt)}</p>
-                  </div>
-                </div>
-                <div style={styles.scanRight}>
-                  {scan.score != null && (
-                    <span style={styles.scanScore}>{scan.score}/100</span>
-                  )}
-                  <span
-                    style={{
-                      ...styles.statusPill,
-                      background:
-                        scan.status === "completed"
-                          ? "#D4EDDA"
-                          : scan.status === "failed"
-                            ? "#F8D7DA"
-                            : "#FFF3CD",
-                      color:
-                        scan.status === "completed"
-                          ? "#155724"
-                          : scan.status === "failed"
-                            ? "#721C24"
-                            : "#856404",
-                    }}
-                  >
-                    {scan.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+        {verifyModal && (
+          <VerifyDomainModal
+            domain={verifyModal.domain}
+            token={verifyModal.token}
+            isThirdPartyHost={verifyModal.isThirdPartyHost}
+            onVerified={handleVerified}
+            onCancel={() => setVerifyModal(null)}
+          />
         )}
       </div>
-
-      {verifyModal && (
-        <VerifyDomainModal
-          domain={verifyModal.domain}
-          token={verifyModal.token}
-          isThirdPartyHost={verifyModal.isThirdPartyHost}
-          onVerified={handleVerified}
-          onCancel={() => setVerifyModal(null)}
-        />
-      )}
-    </div>
+    </>
   );
 }
 
@@ -352,13 +403,7 @@ const statStyles: Record<string, React.CSSProperties> = {
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  page: {
-    padding: "32px 40px",
-    maxWidth: "860px",
-  },
-  header: {
-    marginBottom: "28px",
-  },
+  header: { marginBottom: "28px" },
   heading: {
     fontSize: "24px",
     fontFamily: "'Space Grotesk', sans-serif",
@@ -371,14 +416,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--muted)",
     fontFamily: "'Inter', sans-serif",
   },
-  statsRow: {
-    display: "flex",
-    gap: "12px",
-    marginBottom: "32px",
-  },
-  section: {
-    marginBottom: "32px",
-  },
+  section: { marginBottom: "32px" },
   sectionHeader: {
     display: "flex",
     alignItems: "center",
@@ -401,11 +439,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "'Space Grotesk', sans-serif",
     padding: 0,
   },
-  inputRow: {
-    display: "flex",
-    border: "1.5px solid var(--ink)",
-    maxWidth: "560px",
-  },
   input: {
     flex: 1,
     padding: "13px 16px",
@@ -415,6 +448,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "white",
     fontFamily: "'JetBrains Mono', monospace",
     color: "var(--ink)",
+    minWidth: 0,
   },
   button: {
     padding: "13px 24px",
@@ -427,33 +461,10 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     flexShrink: 0,
   },
-  errorText: {
-    color: "var(--alert)",
-    fontSize: "13px",
-    marginTop: "10px",
-  },
-  emptyState: {
-    padding: "32px 0",
-    borderTop: "1px solid var(--border)",
-  },
-  scanList: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "2px",
-  },
-  scanRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "14px 16px",
-    background: "white",
-    border: "1px solid var(--border)",
-  },
-  scanLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "14px",
-  },
+  errorText: { color: "var(--alert)", fontSize: "13px", marginTop: "10px" },
+  emptyState: { padding: "32px 0", borderTop: "1px solid var(--border)" },
+  scanList: { display: "flex", flexDirection: "column" as const, gap: "2px" },
+  scanLeft: { display: "flex", alignItems: "center", gap: "14px" },
   gradeBox: {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: "16px",
@@ -466,11 +477,6 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     flexShrink: 0,
   },
-  scanDomain: {
-    fontSize: "14px",
-    fontWeight: 500,
-    fontFamily: "'Space Grotesk', sans-serif",
-  },
   scanDate: {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: "11px",
@@ -481,6 +487,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "10px",
+    flexShrink: 0,
   },
   scanScore: {
     fontFamily: "'JetBrains Mono', monospace",

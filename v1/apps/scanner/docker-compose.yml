@@ -9,7 +9,7 @@ services:
   scanner:
     build: ./apps/scanner
     ports:
-      - "8080:8080"
+      - "8000:8000"
     environment:
       - INTERNAL_KEY=${INTERNAL_KEY}
       - CALLBACK_URL=http://host.docker.internal:3000

@@ -11,7 +11,7 @@ import (
 
 func main() {
 	internalKey := getEnv("INTERNAL_KEY", "dev-secret")
-	port := getEnv("PORT", "8080")
+	port := getEnv("PORT", "8000")
 
 	n := notifier.New(internalKey)
 	sc := scanner.New(n)

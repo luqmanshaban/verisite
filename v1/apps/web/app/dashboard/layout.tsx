@@ -11,10 +11,20 @@ export default async function DashboardLayout({
   if (!session?.user) redirect("/login");
 
   return (
-    <div style={styles.shell}>
-      <SidebarClient user={session.user} />
-      <main style={styles.content}>{children}</main>
-    </div>
+    <>
+      <div style={styles.shell}>
+        <SidebarClient user={session.user} />
+        <main style={styles.content}>{children}</main>
+      </div>
+      <style>{`
+        @media (max-width: 768px) {
+          /* Push content below the fixed mobile top bar */
+          .verisite-main-content {
+            padding-top: 52px;
+          }
+        }
+      `}</style>
+    </>
   );
 }
 
@@ -27,6 +37,6 @@ const styles: Record<string, React.CSSProperties> = {
   content: {
     flex: 1,
     minWidth: 0,
-    overflowY: "auto" as const,
+    overflow: "auto",
   },
 };
