@@ -5,8 +5,6 @@ import { Domain } from "@/models/domain";
 import { submitScan } from "@/lib/scanner-client";
 import { auth } from "@/lib/auth";
 import { v4 as uuidv4 } from "uuid";
-import crypto from "crypto";
-import { isThirdPartyHost } from "@/lib/hosting-detector";
 import { checkAnonymousLimit, getClientIP } from "@/lib/rate-limit";
 
 const FREE_DAILY_LIMIT = 10;
@@ -35,7 +33,6 @@ export async function POST(req: NextRequest) {
   if (!session?.user) {
     const ip = getClientIP(req);
     const { allowed } = await checkAnonymousLimit(ip);
-
     if (!allowed) {
       return NextResponse.json(
         {
@@ -45,21 +42,16 @@ export async function POST(req: NextRequest) {
         { status: 429 }
       );
     }
-
     const scanId = uuidv4();
     const callbackUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-
     await Scan.create({
       scanId,
       userId: "anonymous",
       domain,
       url,
-      verified: false,
       status: "pending",
     });
-
     await submitScan({ scanId, url, domain, callbackUrl });
-
     return NextResponse.json({ scanId }, { status: 202 });
   }
 
@@ -68,46 +60,20 @@ export async function POST(req: NextRequest) {
   const plan = session.user.plan ?? "free";
   const rootDomain = getRootDomain(domain);
 
-  const domainDoc = await Domain.findOne({
-    userId,
-    domain: { $in: [domain, rootDomain] },
-    verified: true,
-  });
-
-  if (!domainDoc) {
-    let pendingDoc = await Domain.findOne({ userId, domain });
-    if (!pendingDoc) {
-      const token = crypto.randomBytes(16).toString("hex");
-      pendingDoc = await Domain.create({
-        userId,
-        domain,
-        verified: false,
-        verificationToken: token,
-        isThirdPartyHost: isThirdPartyHost(domain),
-      });
-    }
-
-    return NextResponse.json(
-      {
-        error: "domain_not_verified",
-        message: "This domain needs to be verified before scanning.",
-        domain,
-        token: pendingDoc.verificationToken,
-        isThirdPartyHost: pendingDoc.isThirdPartyHost,
-      },
-      { status: 403 }
-    );
-  }
+  // Track the domain (no verification required)
+  await Domain.findOneAndUpdate(
+    { userId, domain },
+    { userId, domain },
+    { upsert: true }
+  );
 
   if (plan === "free") {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-
     const todayCount = await Scan.countDocuments({
       userId,
       createdAt: { $gte: startOfDay },
     });
-
     if (todayCount >= FREE_DAILY_LIMIT) {
       return NextResponse.json(
         {
@@ -118,14 +84,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const verifiedRootDomains = await Domain.distinct("domain", {
-      userId,
-      verified: true,
-    });
-    const matchesExisting = verifiedRootDomains.some(
+    const existingRootDomains = await Domain.distinct("domain", { userId });
+    const matchesExisting = existingRootDomains.some(
       (d) => getRootDomain(d) === rootDomain
     );
-    if (verifiedRootDomains.length > 0 && !matchesExisting) {
+    if (existingRootDomains.length > 0 && !matchesExisting) {
       return NextResponse.json(
         {
           error: "domain_limit_reached",
@@ -138,17 +101,13 @@ export async function POST(req: NextRequest) {
 
   const scanId = uuidv4();
   const callbackUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-
   await Scan.create({
     scanId,
     userId,
     domain,
     url,
-    verified: true,
     status: "pending",
   });
-
   await submitScan({ scanId, url, domain, callbackUrl });
-
   return NextResponse.json({ scanId }, { status: 202 });
 }

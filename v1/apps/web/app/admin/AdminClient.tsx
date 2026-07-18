@@ -13,6 +13,15 @@ interface Scan {
   createdAt: string | null;
 }
 
+interface User {
+  _id: string;
+  email: string;
+  name: string;
+  plan: string;
+  domainStatus: string; // "verified" | "pending"
+  createdAt: string | null;
+}
+
 interface Stats {
   totals: {
     users: number;
@@ -38,7 +47,7 @@ interface Stats {
   topScanners: { _id: string; count: number }[];
 }
 
-type Tab = "overview" | "scans";
+type Tab = "overview" | "scans" | "users";
 
 export default function AdminClient() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -50,6 +59,13 @@ export default function AdminClient() {
   const [totalScans, setTotalScans] = useState(0);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
+
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersPage, setUsersPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [filterDomainStatus, setFilterDomainStatus] = useState<string>("all");
+
   const PAGE_SIZE = 25;
 
   useEffect(() => {
@@ -76,6 +92,23 @@ export default function AdminClient() {
       })
       .finally(() => setScansLoading(false));
   }, [tab, scansPage, filterStatus, filterType]);
+
+  useEffect(() => {
+    if (tab !== "users") return;
+    setUsersLoading(true);
+    const params = new URLSearchParams({
+      page: String(usersPage),
+      limit: String(PAGE_SIZE),
+      ...(filterDomainStatus !== "all" && { domainStatus: filterDomainStatus }),
+    });
+    fetch(`/api/admin/users?${params}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setAllUsers(data.users ?? []);
+        setTotalUsers(data.total ?? 0);
+      })
+      .finally(() => setUsersLoading(false));
+  }, [tab, usersPage, filterDomainStatus]);
 
   if (loading)
     return (
@@ -109,7 +142,8 @@ export default function AdminClient() {
     return "#E63946";
   };
 
-  const totalPages = Math.ceil(totalScans / PAGE_SIZE);
+  const totalScansPages = Math.ceil(totalScans / PAGE_SIZE);
+  const totalUsersPages = Math.ceil(totalUsers / PAGE_SIZE);
 
   return (
     <>
@@ -192,7 +226,7 @@ export default function AdminClient() {
         </div>
 
         <div style={styles.tabs}>
-          {(["overview", "scans"] as Tab[]).map((t) => (
+          {(["overview", "scans", "users"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -200,7 +234,9 @@ export default function AdminClient() {
             >
               {t === "overview"
                 ? "OVERVIEW"
-                : `ALL SCANS (${stats.totals.scans})`}
+                : t === "scans"
+                  ? `ALL SCANS (${stats.totals.scans})`
+                  : `ALL USERS (${stats.totals.users})`}
             </button>
           ))}
         </div>
@@ -375,7 +411,7 @@ export default function AdminClient() {
                   gradeColor={gradeColor}
                   showUrl
                 />
-                {totalPages > 1 && (
+                {totalScansPages > 1 && (
                   <div style={styles.pagination}>
                     <button
                       onClick={() => setScansPage((p) => Math.max(1, p - 1))}
@@ -390,13 +426,86 @@ export default function AdminClient() {
                         fontFamily: "'JetBrains Mono', monospace",
                       }}
                     >
-                      {scansPage} / {totalPages}
+                      {scansPage} / {totalScansPages}
                     </span>
                     <button
                       onClick={() =>
-                        setScansPage((p) => Math.min(totalPages, p + 1))
+                        setScansPage((p) => Math.min(totalScansPages, p + 1))
                       }
-                      disabled={scansPage === totalPages}
+                      disabled={scansPage === totalScansPages}
+                      style={styles.pageBtn}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {tab === "users" && (
+          <div style={styles.section}>
+            <div style={styles.filters}>
+              <div style={styles.filterGroup}>
+                <label style={styles.filterLabel}>DOMAIN STATUS</label>
+                <select
+                  value={filterDomainStatus}
+                  onChange={(e) => {
+                    setFilterDomainStatus(e.target.value);
+                    setUsersPage(1);
+                  }}
+                  style={styles.select}
+                >
+                  <option value="all">All</option>
+                  <option value="verified">Verified</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "var(--muted)",
+                  alignSelf: "flex-end",
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
+              >
+                {totalUsers} total
+              </p>
+            </div>
+
+            {usersLoading ? (
+              <p style={{ fontSize: "13px", color: "var(--muted)" }}>
+                Loading users...
+              </p>
+            ) : (
+              <>
+                <UsersTable
+                  users={allUsers}
+                  formatDate={formatDate}
+                />
+                {totalUsersPages > 1 && (
+                  <div style={styles.pagination}>
+                    <button
+                      onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
+                      disabled={usersPage === 1}
+                      style={styles.pageBtn}
+                    >
+                      ← Prev
+                    </button>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}
+                    >
+                      {usersPage} / {totalUsersPages}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setUsersPage((p) => Math.min(totalUsersPages, p + 1))
+                      }
+                      disabled={usersPage === totalUsersPages}
                       style={styles.pageBtn}
                     >
                       Next →
@@ -558,6 +667,97 @@ function ScansTable({
                     —
                   </span>
                 )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function UsersTable({
+  users,
+  formatDate,
+}: {
+  users: User[];
+  formatDate: (iso: string | null) => string;
+}) {
+  if (!users.length)
+    return <p style={{ fontSize: "13px", color: "var(--muted)" }}>No users.</p>;
+
+  return (
+    <div className="admin-table-wrap">
+      <table style={tableStyles.table}>
+        <thead>
+          <tr>
+            <th style={tableStyles.th}>EMAIL</th>
+            <th style={tableStyles.th}>NAME</th>
+            <th style={tableStyles.th}>PLAN</th>
+            <th style={tableStyles.th}>DOMAIN STATUS</th>
+            <th style={tableStyles.th}>JOINED</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((u, i) => (
+            <tr
+              key={u._id ?? i}
+              style={i % 2 === 0 ? tableStyles.rowEven : tableStyles.rowOdd}
+            >
+              <td style={tableStyles.td}>
+                <span style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
+                  {u.email}
+                </span>
+              </td>
+              <td style={tableStyles.td}>
+                <span
+                  style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontSize: "13px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {u.name}
+                </span>
+              </td>
+              <td style={tableStyles.td}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--muted)",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {u.plan}
+                </span>
+              </td>
+              <td style={tableStyles.td}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    padding: "2px 6px",
+                    background:
+                      u.domainStatus === "verified" ? "#D4EDDA" : "#FFF3CD",
+                    color:
+                      u.domainStatus === "verified" ? "#155724" : "#856404",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {u.domainStatus}
+                </span>
+              </td>
+              <td
+                style={{
+                  ...tableStyles.td,
+                  color: "var(--muted)",
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "11px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {formatDate(u.createdAt)}
               </td>
             </tr>
           ))}

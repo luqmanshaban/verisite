@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import VerifyDomainModal from "./VerifyDomainModal";
 
 interface ScanItem {
   scanId: string;
@@ -35,11 +34,7 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
   const isPro = user.plan === "pro";
   const remaining = Math.max(0, FREE_DAILY_LIMIT - todayCount);
   const limitReached = !isPro && remaining === 0;
-  const [verifyModal, setVerifyModal] = useState<{
-    domain: string;
-    token: string;
-    isThirdPartyHost: boolean;
-  } | null>(null);
+
   const [pendingUrl, setPendingUrl] = useState("");
 
   const completedScans = scans.filter((s) => s.status === "completed");
@@ -50,19 +45,6 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
       )
     : null;
 
-  function extractDomain(url: string) {
-    try {
-      return new URL(url).hostname;
-    } catch {
-      return url.replace(/^https?:\/\//, "").split("/")[0];
-    }
-  }
-
-  function handleVerified() {
-    setVerifyModal(null);
-    setUrl(pendingUrl);
-    handleScan();
-  }
 
   async function handleScan() {
     setError("");
@@ -74,7 +56,7 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
     const withProtocol = trimmed.startsWith("http")
       ? trimmed
       : `https://${trimmed}`;
-    const domain = extractDomain(withProtocol);
+    const domain = withProtocol.replace(/^https?:\/\//, "").split("/")[0];
     setLoading(true);
     try {
       const res = await fetch("/api/scans", {
@@ -86,11 +68,6 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
       if (!res.ok) {
         if (data.error === "domain_not_verified") {
           setPendingUrl(withProtocol);
-          setVerifyModal({
-            domain: data.domain,
-            token: data.token,
-            isThirdPartyHost: data.isThirdPartyHost,
-          });
           setLoading(false);
           return;
         }
@@ -331,15 +308,6 @@ export default function OverviewClient({ scans, user, todayCount }: Props) {
           )}
         </div>
 
-        {verifyModal && (
-          <VerifyDomainModal
-            domain={verifyModal.domain}
-            token={verifyModal.token}
-            isThirdPartyHost={verifyModal.isThirdPartyHost}
-            onVerified={handleVerified}
-            onCancel={() => setVerifyModal(null)}
-          />
-        )}
       </div>
     </>
   );

@@ -12,11 +12,9 @@ async function post(path: string, body: unknown) {
     },
     body: JSON.stringify(body),
   });
-
   if (!res.ok) {
     throw new Error(`Scanner API error: ${res.status} ${await res.text()}`);
   }
-
   return res.json();
 }
 
@@ -27,12 +25,4 @@ export async function submitScan(job: {
   callbackUrl: string;
 }) {
   return post("/scans", job);
-}
-
-export async function verifyDomain(payload: {
-  domain: string;
-  token: string;
-  method: "dns" | "file";
-}) {
-  return post("/verify", payload);
 }

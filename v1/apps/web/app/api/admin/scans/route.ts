@@ -4,7 +4,6 @@ import { auth } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/is-admin";
 import {connectDB} from "@/lib/mongodb";
 import {Scan} from "@/models/scan";
-import { log } from "node:console";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
