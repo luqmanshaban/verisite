@@ -262,6 +262,22 @@ export default function ReportPage() {
           </section>
         )}
 
+        {!isRunning && (
+          <section style={styles.section}>
+            <p style={styles.sectionLabel}>WANT THIS FIXED?</p>
+            <div style={styles.ctaBox}>
+              <p style={{ fontSize: "14px", lineHeight: 1.6, marginBottom: "16px" }}>
+                This scan catches the surface-level stuff. A full penetration test digs into
+                auth, data access, and API endpoints — the things that actually get exploited.
+                Reply and I&#39;ll walk you through what&#39;s exploitable on your site.
+              </p>
+              <a href="mailto:luqman@luqman.cloud?subject=Pentest%20inquiry" style={styles.ctaBtn}>
+                Get in touch →
+              </a>
+            </div>
+          </section>
+        )}
+
         <footer style={styles.footer}>
           <Link href="/" style={{ fontSize: "13px", color: "var(--muted)" }}>
             ← Scan another URL
@@ -307,4 +323,19 @@ const styles: Record<string, React.CSSProperties> = {
   passedItem: { display: "flex", alignItems: "center", gap: "8px" },
   footer: { padding: "32px 0", marginTop: "auto" },
   mono: { fontFamily: "'JetBrains Mono', monospace" },
+  ctaBox: {
+    background: "var(--paper)",
+    border: "1px solid var(--border)",
+    padding: "20px",
+  },
+  ctaBtn: {
+    display: "inline-block",
+    padding: "9px 16px",
+    background: "var(--ink)",
+    color: "var(--paper)",
+    fontSize: "13px",
+    fontWeight: 600,
+    fontFamily: "'Space Grotesk', sans-serif",
+    textDecoration: "none",
+  },
 };
